@@ -38,5 +38,40 @@ void Solver::solve(Circuit& circuit) {
         }
     }
     
-    std::cout << "MNA Matrix constructed." << std::endl;
+    std::cout << "MNA Matrix constructed. Solving..." << std::endl;
+
+    // Gaussian Elimination
+    for (int i = 0; i < n; ++i) {
+        // Pivot
+        int pivot = i;
+        for (int j = i + 1; j < n; ++j) {
+            if (std::abs(G[j][i]) > std::abs(G[pivot][i])) {
+                pivot = j;
+            }
+        }
+        std::swap(G[i], G[pivot]);
+        std::swap(I[i], I[pivot]);
+
+        // Eliminate
+        for (int j = i + 1; j < n; ++j) {
+            double factor = G[j][i] / G[i][i];
+            for (int k = i; k < n; ++k) {
+                G[j][k] -= factor * G[i][k];
+            }
+            I[j] -= factor * I[i];
+        }
+    }
+
+    // Back Substitution
+    std::vector<double> solution(n);
+    for (int i = n - 1; i >= 0; --i) {
+        double sum = 0.0;
+        for (int j = i + 1; j < n; ++j) {
+            sum += G[i][j] * solution[j];
+        }
+        solution[i] = (I[i] - sum) / G[i][i];
+        nodes[i]->setVoltage(solution[i]);
+    }
+
+    std::cout << "Circuit solved." << std::endl;
 }
