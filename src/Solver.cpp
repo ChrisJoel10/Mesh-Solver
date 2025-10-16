@@ -49,6 +49,10 @@ void Solver::solve(Circuit& circuit) {
                 pivot = j;
             }
         }
+        if (std::abs(G[pivot][i]) < 1e-9) {
+            std::cerr << "Error: Singular matrix, cannot solve." << std::endl;
+            return;
+        }
         std::swap(G[i], G[pivot]);
         std::swap(I[i], I[pivot]);
 
