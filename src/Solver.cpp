@@ -1,5 +1,8 @@
 #include "../include/Solver.h"
 #include <iostream>
+#include <thread>
+#include <mutex>
+#include <vector>
 
 void Solver::solve(Circuit& circuit) {
     auto nodes = circuit.getNodes();
@@ -10,20 +13,40 @@ void Solver::solve(Circuit& circuit) {
     std::vector<std::vector<double>> G(n, std::vector<double>(n, 0.0));
     std::vector<double> I(n, 0.0);
 
-    for (auto comp : circuit.getComponents()) {
-        Resistor* r = dynamic_cast<Resistor*>(comp);
-        if (r) {
-            int u = r->getNode1()->getId();
-            int v = r->getNode2()->getId();
-            double g = 1.0 / r->getResistance();
+    std::mutex mtx;
+    auto components = circuit.getComponents();
+    size_t num_threads = std::thread::hardware_concurrency();
+    if (num_threads == 0) num_threads = 2;
+    std::vector<std::thread> threads;
 
-            if (u < n && v < n) {
-                G[u][u] += g;
-                G[v][v] += g;
-                G[u][v] -= g;
-                G[v][u] -= g;
+    auto worker = [&](size_t start, size_t end) {
+        for (size_t i = start; i < end; ++i) {
+            Resistor* r = dynamic_cast<Resistor*>(components[i]);
+            if (r) {
+                int u = r->getNode1()->getId();
+                int v = r->getNode2()->getId();
+                double g = 1.0 / r->getResistance();
+
+                if (u < n && v < n) {
+                    std::lock_guard<std::mutex> lock(mtx);
+                    G[u][u] += g;
+                    G[v][v] += g;
+                    G[u][v] -= g;
+                    G[v][u] -= g;
+                }
             }
         }
+    };
+
+    size_t chunk_size = components.size() / num_threads;
+    for (size_t i = 0; i < num_threads; ++i) {
+        size_t start = i * chunk_size;
+        size_t end = (i == num_threads - 1) ? components.size() : (i + 1) * chunk_size;
+        threads.emplace_back(worker, start, end);
+    }
+
+    for (auto& t : threads) {
+        t.join();
     }
 
     // Handle fixed nodes (boundary conditions)
