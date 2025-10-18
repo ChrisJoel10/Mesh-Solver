@@ -16,3 +16,8 @@ add_library(mesh_solver_core
 # CLI Executable
 add_executable(mesh_solver_cli src/main.cpp)
 target_link_libraries(mesh_solver_cli mesh_solver_core)
+
+# Pybind11
+find_package(pybind11 REQUIRED)
+pybind11_add_module(mesh_solver bindings/bindings.cpp)
+target_link_libraries(mesh_solver PRIVATE mesh_solver_core)
