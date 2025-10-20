@@ -3,6 +3,7 @@
 #include "../include/Node.h"
 #include "../include/Component.h"
 #include "../include/Circuit.h"
+#include "../include/Solver.h"
 
 namespace py = pybind11;
 
@@ -30,4 +31,8 @@ PYBIND11_MODULE(mesh_solver, m) {
         .def("addComponent", &Circuit::addComponent)
         .def("getNodes", &Circuit::getNodes)
         .def("getComponents", &Circuit::getComponents);
+
+    py::class_<Solver>(m, "Solver")
+        .def(py::init<>())
+        .def("solve", &Solver::solve);
 }
