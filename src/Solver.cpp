@@ -5,7 +5,7 @@
 #include <vector>
 
 void Solver::solve(Circuit& circuit) {
-    auto nodes = circuit.getNodes();
+    const auto& nodes = circuit.getNodes();
     int n = nodes.size();
     
     // Simple MNA for resistive network
@@ -14,10 +14,11 @@ void Solver::solve(Circuit& circuit) {
     std::vector<double> I(n, 0.0);
 
     std::mutex mtx;
-    auto components = circuit.getComponents();
+    const auto& components = circuit.getComponents();
     size_t num_threads = std::thread::hardware_concurrency();
     if (num_threads == 0) num_threads = 2;
     std::vector<std::thread> threads;
+    threads.reserve(num_threads);
 
     auto worker = [&](size_t start, size_t end) {
         for (size_t i = start; i < end; ++i) {
