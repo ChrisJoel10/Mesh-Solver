@@ -13,6 +13,8 @@ void Solver::solve(Circuit& circuit) {
     std::vector<std::vector<double>> G(n, std::vector<double>(n, 0.0));
     std::vector<double> I(n, 0.0);
 
+    // Check for threading support (common issue on MinGW)
+#if defined(_GLIBCXX_HAS_GTHREADS) && defined(_GLIBCXX_USE_C99_STDINT_TR1)
     std::mutex mtx;
     const auto& components = circuit.getComponents();
     size_t num_threads = std::thread::hardware_concurrency();
@@ -49,6 +51,25 @@ void Solver::solve(Circuit& circuit) {
     for (auto& t : threads) {
         t.join();
     }
+#else
+    // Single-threaded fallback for environments without std::thread (e.g., some MinGW setups)
+    std::cout << "Threading not supported, running single-threaded." << std::endl;
+    for (auto comp : circuit.getComponents()) {
+        Resistor* r = dynamic_cast<Resistor*>(comp);
+        if (r) {
+            int u = r->getNode1()->getId();
+            int v = r->getNode2()->getId();
+            double g = 1.0 / r->getResistance();
+
+            if (u < n && v < n) {
+                G[u][u] += g;
+                G[v][v] += g;
+                G[u][v] -= g;
+                G[v][u] -= g;
+            }
+        }
+    }
+#endif
 
     // Handle fixed nodes (boundary conditions)
     // For fixed nodes, we modify the equation to trivial V_k = known_voltage
